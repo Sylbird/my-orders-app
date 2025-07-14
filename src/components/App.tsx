@@ -1,8 +1,12 @@
+import { useNavigate } from 'react-router';
+
 const App = () => {
+  const navigate = useNavigate();
   return (
-    <div>
-      <h1>My Orders App</h1>
-    </div>
+    <main>
+      <h1>You could check your orders here:</h1>
+      <button onClick={() => navigate('/my-orders')}>My Orders</button>
+    </main>
   );
 };
 
