@@ -27,7 +27,7 @@ const AddOrder = () => {
     const fetchProducts = async () => {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}products`
+          `${import.meta.env.VITE_BACKEND_API}/products`
         );
         if (!response.ok) throw new Error('Failed to fetch products');
         const data = await response.json();
@@ -62,7 +62,7 @@ const AddOrder = () => {
     e.preventDefault();
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}orders`,
+        `${import.meta.env.VITE_BACKEND_API}/orders`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -80,7 +80,7 @@ const AddOrder = () => {
           quantity: product.quantity
         };
         const productResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}order_products`,
+          `${import.meta.env.VITE_BACKEND_API}/order_products`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
