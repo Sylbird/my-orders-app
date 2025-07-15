@@ -6,7 +6,6 @@ export interface Order {
   date: string;
   num_products: number;
   final_price: number;
-  status: string;
   products?: Product[];
 }
 

@@ -92,7 +92,6 @@ const Orders = () => {
           <Column field="date" header="Date"></Column>
           <Column field="num_products" header="#Products"></Column>
           <Column field="final_price" header="FinalPrice"></Column>
-          <Column field="status" header="Status"></Column>
           <Column
             header="Actions"
             body={actionButtons}
