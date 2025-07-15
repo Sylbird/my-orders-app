@@ -1,5 +1,3 @@
-// Define common types used across order components
-
 export interface Order {
   id?: string;
   order_number: string;
@@ -15,6 +13,7 @@ export interface Product {
 }
 
 export interface OrderProduct {
+  order_id?: number;
   product_id: number;
   name: string;
   unit_price: number;
