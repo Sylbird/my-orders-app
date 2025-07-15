@@ -7,8 +7,10 @@ import type { Order, OrderProduct, Product } from './types';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { Dialog } from 'primereact/dialog';
+import { useNavigate } from 'react-router';
 
 const EditOrder = ({ id }: { id: string | undefined }) => {
+  const navigate = useNavigate();
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -110,7 +112,54 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Not working / Incomplete');
+    try {
+      // Update order_number
+      const orderResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/orders/${id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_number: orderData.order_number })
+        }
+      );
+      if (!orderResponse.ok) throw new Error('Failed to update order');
+
+      // Fetch existing order products
+      const existingResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
+      );
+      if (!existingResponse.ok)
+        throw new Error('Failed to fetch existing products');
+      const existingProducts = await existingResponse.json();
+
+      // Sync orderProducts
+      for (const product of orderProducts) {
+        const existing = existingProducts.find(
+          (p: OrderProduct) => p.product_id === product.product_id
+        );
+        const method = existing ? 'PUT' : 'POST';
+        const productResponse = await fetch(
+          `${import.meta.env.VITE_BACKEND_API}/order_products`,
+          {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: parseInt(id!),
+              product_id: product.product_id,
+              quantity: product.quantity
+            })
+          }
+        );
+        if (!productResponse.ok) throw new Error('Failed to sync product');
+      }
+
+      navigate('/my-orders');
+    } catch (error) {
+      console.error('Error Updating Order');
+    }
+  };
+  const handleChange = (field: string, value: string) => {
+    setOrderData((prev) => ({ ...prev, [field]: value }));
   };
 
   const actionsButtons = (rowData: OrderProduct) => (
@@ -148,6 +197,7 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
           <InputText
             id="order_number"
             value={orderData.order_number}
+            onChange={(e) => handleChange('order_number', e.target.value)}
             required
           />
         </div>
