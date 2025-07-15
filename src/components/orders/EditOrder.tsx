@@ -8,7 +8,7 @@ import type { Order, OrderProduct } from './types';
 const EditOrder = ({ id }: { id: string | undefined }) => {
   const [orderData, setOrderData] = useState<Order>({
     order_number: '',
-    date: new Date().toISOString(),
+    date: new Date().toLocaleDateString(),
     num_products: 0,
     final_price: 0
   });
@@ -22,10 +22,12 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
           `${import.meta.env.VITE_BACKEND_API}/orders/${id}`
         );
         if (!orderResponse.ok) throw new Error('Failed to fetch order');
-        const order = await orderResponse.json();
+        const order: Order = await orderResponse.json();
         setOrderData({
           order_number: order.order_number || '',
-          date: order.date || new Date().toISOString(),
+          date:
+            new Date(order.date).toLocaleDateString() ||
+            new Date().toLocaleDateString(),
           num_products: order.num_products || 0,
           final_price: order.final_price || 0
         });

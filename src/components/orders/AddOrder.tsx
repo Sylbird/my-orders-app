@@ -13,7 +13,7 @@ const AddOrder = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order>({
     order_number: '',
-    date: new Date().toISOString(),
+    date: new Date().toLocaleDateString(),
     num_products: 0,
     final_price: 0
   });

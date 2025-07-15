@@ -93,7 +93,11 @@ const Orders = () => {
         <DataTable value={orders} tableStyle={{ minWidth: '50rem' }}>
           <Column field="id" header="Id"></Column>
           <Column field="order_number" header="#Order"></Column>
-          <Column field="date" header="Date"></Column>
+          <Column
+            field="date"
+            header="Date"
+            body={(rowData) => new Date(rowData.date).toLocaleDateString()}
+          ></Column>
           <Column field="num_products" header="#Products"></Column>
           <Column field="final_price" header="FinalPrice"></Column>
           <Column
