@@ -3,9 +3,16 @@ import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import type { Order, OrderProduct } from './types';
+import type { Order, OrderProduct, Product } from './types';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
+import { Dialog } from 'primereact/dialog';
 
 const EditOrder = ({ id }: { id: string | undefined }) => {
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState<number>(1);
   const [orderData, setOrderData] = useState<Order>({
     order_number: '',
     date: new Date().toLocaleDateString(),
@@ -14,37 +21,55 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
   });
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
 
+  const fetchAvailableProducts = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/products`
+      );
+      if (!response.ok) throw new Error('Failed to fetch products');
+      const data = await response.json();
+      setAvailableProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchOrder = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/orders/${id}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch order');
+      const order: Order = await response.json();
+      setOrderData({
+        order_number: order.order_number,
+        date: new Date(order.date).toLocaleDateString(),
+        num_products: order.num_products,
+        final_price: order.final_price
+      });
+    } catch (error) {
+      console.error('Error fetching order:', error);
+    }
+  };
+
+  const fetchOrderProducts = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch order products');
+      const orderProductsData = await response.json();
+      setOrderProducts(orderProductsData);
+    } catch (error) {
+      console.error('Error fetching order products:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        // Fetch order
-        const orderResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/orders/${id}`
-        );
-        if (!orderResponse.ok) throw new Error('Failed to fetch order');
-        const order: Order = await orderResponse.json();
-        setOrderData({
-          order_number: order.order_number || '',
-          date:
-            new Date(order.date).toLocaleDateString() ||
-            new Date().toLocaleDateString(),
-          num_products: order.num_products || 0,
-          final_price: order.final_price || 0
-        });
-
-        // Fetch order products
-        const orderProductsResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
-        );
-        if (!orderProductsResponse.ok)
-          throw new Error('Failed to fetch order products');
-        const orderProductsData = await orderProductsResponse.json();
-        setOrderProducts(
-          Array.isArray(orderProductsData) ? orderProductsData : []
-        );
-      } catch (error) {
-        console.error('Fetch error:', error);
-      }
+      fetchOrder();
+      fetchOrderProducts();
+      fetchAvailableProducts();
     };
     if (id && !isNaN(parseInt(id))) {
       fetchData();
@@ -68,6 +93,21 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
     }
   };
 
+  const handleAddProduct = () => {
+    if (!selectedProduct || !quantity) return;
+    const newOrderProduct: OrderProduct = {
+      product_id: selectedProduct.id,
+      name: selectedProduct.name,
+      unit_price: selectedProduct.unit_price,
+      quantity,
+      total_price: selectedProduct.unit_price * quantity
+    };
+    setOrderProducts([...orderProducts, newOrderProduct]);
+    setShowModal(false);
+    setSelectedProduct(null);
+    setQuantity(1);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     alert('Not working / Incomplete');
@@ -80,6 +120,23 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
       onClick={() => handleDeleteProduct(rowData.product_id)}
       aria-label={`Delete product ${rowData.name}`}
     />
+  );
+
+  const modalFooter = (
+    <div>
+      <Button
+        label="Cancel"
+        icon="pi pi-times"
+        onClick={() => setShowModal(false)}
+        className="p-button-text"
+      />
+      <Button
+        label="Add"
+        icon="pi pi-check"
+        onClick={handleAddProduct}
+        disabled={!selectedProduct || !quantity}
+      />
+    </div>
   );
 
   return (
@@ -128,7 +185,7 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
       <Button
         label="Add Product"
         icon="pi pi-plus"
-        onClick={() => alert('Not working / Incomplete')}
+        onClick={() => setShowModal(true)}
         className="p-mb-3"
       />
       <DataTable value={orderProducts} tableStyle={{ minWidth: '50rem' }}>
@@ -139,6 +196,36 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
         <Column field="total_price" header="Total Price" />
         <Column header="Actions" body={actionsButtons} />
       </DataTable>
+      <Dialog
+        header="Add Product"
+        visible={showModal}
+        style={{ width: '30rem' }}
+        footer={modalFooter}
+        onHide={() => setShowModal(false)}
+      >
+        <div className="p-fluid">
+          <div className="p-field p-mb-4">
+            <label htmlFor="product">Product</label>
+            <Dropdown
+              id="product"
+              value={selectedProduct}
+              options={availableProducts}
+              optionLabel="name"
+              onChange={(e) => setSelectedProduct(e.value)}
+              placeholder="Select a product"
+            />
+          </div>
+          <div className="p-field p-mb-4">
+            <label htmlFor="quantity">Quantity</label>
+            <InputNumber
+              id="quantity"
+              value={quantity}
+              onValueChange={(e) => setQuantity(e.value || 1)}
+              min={1}
+            />
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 };
