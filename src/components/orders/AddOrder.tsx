@@ -18,25 +18,25 @@ const AddOrder = () => {
     final_price: 0
   });
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchAvailableProducts = async () => {
       try {
         const response = await fetch(
           `${import.meta.env.VITE_BACKEND_API}/products`
         );
         if (!response.ok) throw new Error('Failed to fetch products');
         const data = await response.json();
-        setProducts(data);
+        setAvailableProducts(data);
       } catch (error) {
         console.error('Error fetching products:', error);
       }
     };
-    fetchProducts();
+    fetchAvailableProducts();
   }, []);
 
   const handleChange = (field: string, value: string) => {
@@ -179,7 +179,7 @@ const AddOrder = () => {
             <Dropdown
               id="product"
               value={selectedProduct}
-              options={products}
+              options={availableProducts}
               optionLabel="name"
               onChange={(e) => setSelectedProduct(e.value)}
               placeholder="Select a product"
