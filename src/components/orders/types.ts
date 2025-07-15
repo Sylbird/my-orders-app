@@ -6,17 +6,18 @@ export interface Order {
   date: string;
   num_products: number;
   final_price: number;
-  products?: Product[];
 }
 
 export interface Product {
-  id: string;
+  id: number;
   name: string;
-  price: number;
-  description?: string;
+  unit_price: number;
 }
 
 export interface OrderProduct {
-  product_id: string;
+  product_id: number;
+  name: string;
+  unit_price: number;
   quantity: number;
+  total_price: number;
 }
