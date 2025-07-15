@@ -4,28 +4,27 @@ import { useEffect, useState } from 'react';
 import { Button } from 'primereact/button';
 import { useNavigate } from 'react-router';
 import { Toolbar } from 'primereact/toolbar';
+import type { Order } from './types';
 
 const Orders = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}orders`);
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}orders`
-        );
-        if (!response.ok) throw new Error('Failed to fetch');
-        const data = await response.json();
-        setOrders(data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      }
-    };
     fetchOrders();
   }, []);
 
-  const actionButtons = (rowData: any) => {
+  const actionButtons = (rowData: Order) => {
     return (
       <>
         <Button
@@ -33,14 +32,27 @@ const Orders = () => {
           rounded
           outlined
           className="mr-2"
-          onClick={() => navigate(`/add-order/:${rowData.id}`)}
+          onClick={() => navigate(`/add-order/${rowData.id}`)}
         />
         <Button
           icon="pi pi-trash"
           rounded
           outlined
           severity="danger"
-          onClick={() => {}}
+          onClick={async () => {
+            try {
+              const response = await fetch(
+                `${import.meta.env.VITE_BACKEND_API}orders/${rowData.id}`,
+                {
+                  method: 'DELETE'
+                }
+              );
+              if (!response.ok) throw new Error('Failed to delete order');
+              fetchOrders();
+            } catch (error) {
+              console.error('Error deleting order:', error);
+            }
+          }}
         />
       </>
     );
@@ -60,7 +72,7 @@ const Orders = () => {
         label="New"
         icon="pi pi-plus"
         severity="success"
-        onClick={() => {}}
+        onClick={() => navigate('/add-order/new')}
       />
     );
   };
@@ -82,6 +94,7 @@ const Orders = () => {
           <Column field="final_price" header="FinalPrice"></Column>
           <Column field="status" header="Status"></Column>
           <Column
+            header="Actions"
             body={actionButtons}
             exportable={false}
             style={{ minWidth: '12rem' }}
