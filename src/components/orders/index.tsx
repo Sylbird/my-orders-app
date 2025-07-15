@@ -11,12 +11,29 @@ const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}orders`);
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/orders`
+      );
       if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
       setOrders(data);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  };
+
+  const deleteOrder = async (rowData: Order) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/orders/${rowData.id}`,
+        {
+          method: 'DELETE'
+        }
+      );
+      if (!response.ok) throw new Error('Failed to delete order');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
     }
   };
 
@@ -39,20 +56,7 @@ const Orders = () => {
           rounded
           outlined
           severity="danger"
-          onClick={async () => {
-            try {
-              const response = await fetch(
-                `${import.meta.env.VITE_BACKEND_API}orders/${rowData.id}`,
-                {
-                  method: 'DELETE'
-                }
-              );
-              if (!response.ok) throw new Error('Failed to delete order');
-              fetchOrders();
-            } catch (error) {
-              console.error('Error deleting order:', error);
-            }
-          }}
+          onClick={() => deleteOrder(rowData)}
         />
       </>
     );
