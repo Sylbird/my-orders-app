@@ -90,7 +90,11 @@ const Orders = () => {
           start={leftToolbarTemplate}
           end={rightToolbarTemplate}
         ></Toolbar>
-        <DataTable value={orders} tableStyle={{ minWidth: '50rem' }}>
+        <DataTable
+          showGridlines
+          value={orders}
+          tableStyle={{ minWidth: '50rem' }}
+        >
           <Column field="id" header="Id"></Column>
           <Column field="order_number" header="#Order"></Column>
           <Column

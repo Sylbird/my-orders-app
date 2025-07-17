@@ -113,11 +113,23 @@ const AddOrder = () => {
     </div>
   );
 
+  const dataTableHeader = (
+    <div className="flex flex-wrap align-items-center justify-content-between gap-2">
+      <span className="text-xl text-900 font-bold">Products in the order</span>
+      <Button
+        icon="pi pi-plus"
+        onClick={() => setShowModal(true)}
+        className="p-mb-3"
+        rounded
+      />
+    </div>
+  );
+
   return (
     <div>
       <h1>Add Order</h1>
-      <form onSubmit={handleSubmit} className="p-fluid">
-        <div className="p-field p-mb-4">
+      <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
+        <div className="field p-mb-4">
           <label htmlFor="order_number">Order Number</label>
           <InputText
             id="order_number"
@@ -126,11 +138,11 @@ const AddOrder = () => {
             required
           />
         </div>
-        <div className="p-field p-mb-4">
+        <div className="field p-mb-4">
           <label htmlFor="date">Date</label>
           <InputText id="date" value={order.date} disabled />
         </div>
-        <div className="p-field p-mb-4">
+        <div className="field p-mb-4">
           <label htmlFor="num_products"># Products</label>
           <InputText
             id="num_products"
@@ -140,7 +152,7 @@ const AddOrder = () => {
             disabled
           />
         </div>
-        <div className="p-field p-mb-4">
+        <div className="field p-mb-4">
           <label htmlFor="final_price">Final Price</label>
           <InputText
             id="final_price"
@@ -152,14 +164,12 @@ const AddOrder = () => {
         </div>
         <Button label="Save" icon="pi pi-save" type="submit" />
       </form>
-      <h3>Products</h3>
-      <Button
-        label="Add Product"
-        icon="pi pi-plus"
-        onClick={() => setShowModal(true)}
-        className="p-mb-3"
-      />
-      <DataTable value={orderProducts} tableStyle={{ minWidth: '50rem' }}>
+      <DataTable
+        showGridlines
+        value={orderProducts}
+        tableStyle={{ minWidth: '50rem' }}
+        header={dataTableHeader}
+      >
         <Column field="product_id" header="ID" />
         <Column field="name" header="Name" />
         <Column field="unit_price" header="Unit Price" />
@@ -167,14 +177,14 @@ const AddOrder = () => {
         <Column field="total_price" header="Total Price" />
       </DataTable>
       <Dialog
-        header="Add Product"
+        header="Add New Product"
         visible={showModal}
         style={{ width: '30rem' }}
         footer={modalFooter}
         onHide={() => setShowModal(false)}
       >
         <div className="p-fluid">
-          <div className="p-field p-mb-4">
+          <div className="field p-mb-4">
             <label htmlFor="product">Product</label>
             <Dropdown
               id="product"
@@ -185,7 +195,7 @@ const AddOrder = () => {
               placeholder="Select a product"
             />
           </div>
-          <div className="p-field p-mb-4">
+          <div className="field p-mb-4">
             <label htmlFor="quantity">Quantity</label>
             <InputNumber
               id="quantity"
