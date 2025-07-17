@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
@@ -8,6 +8,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Dialog } from 'primereact/dialog';
 import { useNavigate } from 'react-router';
 import type { Order, OrderProduct, Product } from '../types';
+import { Toast } from 'primereact/toast';
 
 const EditOrder = ({ id }: { id: string | number }) => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const EditOrder = ({ id }: { id: string | number }) => {
     final_price: 0
   });
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  const errorToast = useRef<Toast>(null);
 
   const fetchAvailableProducts = async () => {
     try {
@@ -60,8 +62,6 @@ const EditOrder = ({ id }: { id: string | number }) => {
         `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
       );
       if (!response.ok) throw new Error('Failed to fetch order products');
-      // we need to check if the response has the expected type/interface schema
-      // and return error if not
       const orderProductsData: OrderProduct[] = await response.json();
       setOrderProducts(orderProductsData);
     } catch (error) {
@@ -75,11 +75,19 @@ const EditOrder = ({ id }: { id: string | number }) => {
       fetchOrderProducts();
       fetchAvailableProducts();
     };
-    // we need to check if the id exists on the backend
+    // TODO: We need to check if the id exists on the backend
     if (id) {
       fetchData();
     }
   }, [id]);
+
+  const showErrorToast = () => {
+    errorToast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Please add at least one product'
+    });
+  };
 
   const handleDeleteProduct = async (product_id: number) => {
     try {
@@ -115,6 +123,9 @@ const EditOrder = ({ id }: { id: string | number }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (orderProducts.length === 0) return showErrorToast();
+
     try {
       // Update order_number
       const orderResponse = await fetch(
@@ -204,7 +215,8 @@ const EditOrder = ({ id }: { id: string | number }) => {
   );
 
   return (
-    <div>
+    <main>
+      <Toast ref={errorToast} />
       <h1>Edit Order #{orderData.order_number}</h1>
       <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
         <div className="field p-mb-4">
@@ -289,11 +301,12 @@ const EditOrder = ({ id }: { id: string | number }) => {
               value={quantity}
               onValueChange={(e) => setQuantity(e.value || 1)}
               min={1}
+              maxFractionDigits={0}
             />
           </div>
         </div>
       </Dialog>
-    </div>
+    </main>
   );
 };
 

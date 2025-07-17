@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
@@ -8,6 +8,7 @@ import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import type { Order, OrderProduct, Product } from '../types';
+import { Toast } from 'primereact/toast';
 
 const AddOrder = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const AddOrder = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
+  const errorToast = useRef<Toast>(null);
 
   useEffect(() => {
     const fetchAvailableProducts = async () => {
@@ -38,6 +40,14 @@ const AddOrder = () => {
     };
     fetchAvailableProducts();
   }, []);
+
+  const showErrorToast = () => {
+    errorToast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Please add at least one product'
+    });
+  };
 
   const handleChange = (field: string, value: string) => {
     setOrder((prev) => ({ ...prev, [field]: value }));
@@ -60,6 +70,9 @@ const AddOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (orderProducts.length === 0) return showErrorToast();
+
     try {
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_API}/orders`,
@@ -126,7 +139,8 @@ const AddOrder = () => {
   );
 
   return (
-    <div>
+    <main>
+      <Toast ref={errorToast} />
       <h1>Add Order</h1>
       <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
         <div className="field p-mb-4">
@@ -210,11 +224,12 @@ const AddOrder = () => {
               value={quantity}
               onValueChange={(e) => setQuantity(e.value || 1)}
               min={1}
+              maxFractionDigits={0}
             />
           </div>
         </div>
       </Dialog>
-    </div>
+    </main>
   );
 };
 
