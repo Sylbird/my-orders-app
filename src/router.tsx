@@ -1,11 +1,11 @@
 import { createBrowserRouter } from 'react-router';
 import App from './components/App';
-import AddEditOrder from './components/orders/AddEditOrders';
+import AddOrEditOrder from './components/orders/AddOrEdit';
 import Orders from './components/orders';
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: '*',
     element: <App />
   },
   {
@@ -14,7 +14,7 @@ const router = createBrowserRouter([
   },
   {
     path: 'add-order/:id',
-    element: <AddEditOrder />
+    element: <AddOrEditOrder />
   }
 ]);
 

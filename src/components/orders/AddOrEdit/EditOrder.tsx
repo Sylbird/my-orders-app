@@ -1,46 +1,101 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
-import type { Order, OrderProduct, Product } from './types';
+import { Dialog } from 'primereact/dialog';
+import { useNavigate } from 'react-router';
+import type { Order, OrderProduct, Product } from '../types';
 
-const AddOrder = () => {
+const EditOrder = ({ id }: { id: string | number }) => {
   const navigate = useNavigate();
-  const [order, setOrder] = useState<Order>({
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [orderData, setOrderData] = useState<Order>({
     order_number: '',
     date: new Date().toLocaleDateString(),
     num_products: 0,
     final_price: 0
   });
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
-  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
+
+  const fetchAvailableProducts = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/products`
+      );
+      if (!response.ok) throw new Error('Failed to fetch products');
+      const data = await response.json();
+      setAvailableProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchOrder = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/orders/${id}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch order');
+      const order: Order = await response.json();
+      setOrderData({
+        order_number: order.order_number,
+        date: new Date(order.date).toLocaleDateString(),
+        num_products: order.num_products,
+        final_price: order.final_price
+      });
+    } catch (error) {
+      console.error('Error fetching order:', error);
+    }
+  };
+
+  const fetchOrderProducts = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch order products');
+      // we need to check if the response has the expected type/interface schema
+      // and return error if not
+      const orderProductsData: OrderProduct[] = await response.json();
+      setOrderProducts(orderProductsData);
+    } catch (error) {
+      console.error('Error fetching order products:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchAvailableProducts = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/products`
-        );
-        if (!response.ok) throw new Error('Failed to fetch products');
-        const data = await response.json();
-        setAvailableProducts(data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
+    const fetchData = async () => {
+      fetchOrder();
+      fetchOrderProducts();
+      fetchAvailableProducts();
     };
-    fetchAvailableProducts();
-  }, []);
+    // we need to check if the id exists on the backend
+    if (id) {
+      fetchData();
+    }
+  }, [id]);
 
-  const handleChange = (field: string, value: string) => {
-    setOrder((prev) => ({ ...prev, [field]: value }));
+  const handleDeleteProduct = async (product_id: number) => {
+    try {
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_BACKEND_API
+        }/order_products?order_id=${id}&product_id=${product_id}`,
+        { method: 'DELETE' }
+      );
+      if (!response.ok) throw new Error('Failed to delete product');
+      setOrderProducts(
+        orderProducts.filter((p) => p.product_id !== product_id)
+      );
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
   };
 
   const handleAddProduct = () => {
@@ -61,40 +116,63 @@ const AddOrder = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/orders`,
+      // Update order_number
+      const orderResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/orders/${id}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_number: order.order_number })
+          body: JSON.stringify({ order_number: orderData.order_number })
         }
       );
-      if (!response.ok) throw new Error('Failed to create order');
-      const newOrder = await response.json();
+      if (!orderResponse.ok) throw new Error('Failed to update order');
 
-      // Add products to order
+      // Fetch existing order products
+      const existingResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
+      );
+      if (!existingResponse.ok)
+        throw new Error('Failed to fetch existing products');
+      const existingProducts = await existingResponse.json();
+
+      // Sync orderProducts
       for (const product of orderProducts) {
-        const productData = {
-          order_id: newOrder.id,
-          product_id: product.product_id,
-          quantity: product.quantity
-        };
+        const existing = existingProducts.find(
+          (p: OrderProduct) => p.product_id === product.product_id
+        );
+        const method = existing ? 'PUT' : 'POST';
         const productResponse = await fetch(
           `${import.meta.env.VITE_BACKEND_API}/order_products`,
           {
-            method: 'POST',
+            method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
+            body: JSON.stringify({
+              order_id: id,
+              product_id: product.product_id,
+              quantity: product.quantity
+            })
           }
         );
-        if (!productResponse.ok) throw new Error('Failed to add product');
+        if (!productResponse.ok) throw new Error('Failed to sync product');
       }
 
       navigate('/my-orders');
     } catch (error) {
-      console.error('Error saving order:', error);
+      console.error('Error Updating Order');
     }
   };
+  const handleChange = (field: string, value: string) => {
+    setOrderData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const actionsButtons = (rowData: OrderProduct) => (
+    <Button
+      icon="pi pi-trash"
+      className="p-button-text p-button-rounded p-button-danger"
+      onClick={() => handleDeleteProduct(rowData.product_id)}
+      aria-label={`Delete product ${rowData.name}`}
+    />
+  );
 
   const modalFooter = (
     <div>
@@ -127,20 +205,20 @@ const AddOrder = () => {
 
   return (
     <div>
-      <h1>Add Order</h1>
+      <h1>Edit Order #{orderData.order_number}</h1>
       <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
         <div className="field p-mb-4">
           <label htmlFor="order_number">Order Number</label>
           <InputText
             id="order_number"
-            value={order.order_number}
+            value={orderData.order_number}
             onChange={(e) => handleChange('order_number', e.target.value)}
             required
           />
         </div>
         <div className="field p-mb-4">
           <label htmlFor="date">Date</label>
-          <InputText id="date" value={order.date} disabled />
+          <InputText id="date" value={orderData.date} disabled />
         </div>
         <div className="field p-mb-4">
           <label htmlFor="num_products"># Products</label>
@@ -183,6 +261,7 @@ const AddOrder = () => {
           header="Total Price"
           body={(rowData: OrderProduct) => rowData.total_price.toFixed(2)}
         />
+        <Column header="Actions" body={actionsButtons} />
       </DataTable>
       <Dialog
         header="Add New Product"
@@ -218,4 +297,4 @@ const AddOrder = () => {
   );
 };
 
-export default AddOrder;
+export default EditOrder;
