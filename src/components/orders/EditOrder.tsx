@@ -60,7 +60,9 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
         `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
       );
       if (!response.ok) throw new Error('Failed to fetch order products');
-      const orderProductsData = await response.json();
+      // we need to check if the response has the expected type/interface schema
+      // and return error if not
+      const orderProductsData: OrderProduct[] = await response.json();
       setOrderProducts(orderProductsData);
     } catch (error) {
       console.error('Error fetching order products:', error);
@@ -231,13 +233,9 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
           <label htmlFor="final_price">Final Price</label>
           <InputText
             id="final_price"
-            value={`${orderProducts
-              .reduce(
-                (sum: number, p: OrderProduct) =>
-                  sum + (Number(p.total_price) || 0),
-                0
-              )
-              .toFixed(2)}`}
+            value={orderProducts
+              .reduce((sum, p) => sum + p.total_price, 0)
+              .toFixed(2)}
             disabled
           />
         </div>
@@ -251,9 +249,17 @@ const EditOrder = ({ id }: { id: string | undefined }) => {
       >
         <Column field="product_id" header="ID" />
         <Column field="name" header="Name" />
-        <Column field="unit_price" header="Unit Price" />
+        <Column
+          field="unit_price"
+          header="Unit Price"
+          body={(rowData: OrderProduct) => rowData.unit_price.toFixed(2)}
+        />
         <Column field="quantity" header="Qty" />
-        <Column field="total_price" header="Total Price" />
+        <Column
+          field="total_price"
+          header="Total Price"
+          body={(rowData: OrderProduct) => rowData.total_price.toFixed(2)}
+        />
         <Column header="Actions" body={actionsButtons} />
       </DataTable>
       <Dialog

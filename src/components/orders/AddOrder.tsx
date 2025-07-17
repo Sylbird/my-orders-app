@@ -172,9 +172,17 @@ const AddOrder = () => {
       >
         <Column field="product_id" header="ID" />
         <Column field="name" header="Name" />
-        <Column field="unit_price" header="Unit Price" />
+        <Column
+          field="unit_price"
+          header="Unit Price"
+          body={(rowData: OrderProduct) => rowData.unit_price.toFixed(2)}
+        />
         <Column field="quantity" header="Qty" />
-        <Column field="total_price" header="Total Price" />
+        <Column
+          field="total_price"
+          header="Total Price"
+          body={(rowData: OrderProduct) => rowData.total_price.toFixed(2)}
+        />
       </DataTable>
       <Dialog
         header="Add New Product"

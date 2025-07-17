@@ -100,10 +100,16 @@ const Orders = () => {
           <Column
             field="date"
             header="Date"
-            body={(rowData) => new Date(rowData.date).toLocaleDateString()}
+            body={(rowData: Order) =>
+              new Date(rowData.date).toLocaleDateString()
+            }
           ></Column>
           <Column field="num_products" header="#Products"></Column>
-          <Column field="final_price" header="FinalPrice"></Column>
+          <Column
+            field="final_price"
+            header="FinalPrice"
+            body={(rowData: Order) => rowData.final_price.toFixed(2)}
+          ></Column>
           <Column
             header="Actions"
             body={actionButtons}
