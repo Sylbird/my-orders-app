@@ -9,14 +9,15 @@ import { Dialog } from 'primereact/dialog';
 import { useNavigate } from 'react-router';
 import type { Order, OrderProduct, Product } from '../types';
 import { Toast } from 'primereact/toast';
+import { fetchProducts, fetchOrderByID, fetchProductsForOrder } from './api';
 
-const EditOrder = ({ id }: { id: string | number }) => {
+const EditOrder = ({ id }: { id: number }) => {
   const navigate = useNavigate();
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [orderData, setOrderData] = useState<Order>({
+  const [order, setOrder] = useState<Order>({
     order_number: '',
     date: new Date().toLocaleDateString(),
     num_products: 0,
@@ -25,61 +26,22 @@ const EditOrder = ({ id }: { id: string | number }) => {
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
   const errorToast = useRef<Toast>(null);
 
-  const fetchAvailableProducts = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/products`
-      );
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
-      setAvailableProducts(data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  };
-
-  const fetchOrder = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/orders/${id}`
-      );
-      if (!response.ok) throw new Error('Failed to fetch order');
-      const order: Order = await response.json();
-      setOrderData({
-        order_number: order.order_number,
-        date: new Date(order.date).toLocaleDateString(),
-        num_products: order.num_products,
-        final_price: order.final_price
-      });
-    } catch (error) {
-      console.error('Error fetching order:', error);
-    }
-  };
-
-  const fetchOrderProducts = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
-      );
-      if (!response.ok) throw new Error('Failed to fetch order products');
-      const orderProductsData: OrderProduct[] = await response.json();
-      setOrderProducts(orderProductsData);
-    } catch (error) {
-      console.error('Error fetching order products:', error);
-    }
-  };
-
   useEffect(() => {
-    const fetchData = async () => {
-      fetchOrder();
-      fetchOrderProducts();
-      fetchAvailableProducts();
-    };
-    // TODO: We need to check if the id exists on the backend
-    if (id) {
-      fetchData();
-    }
+    fetchAndSetData(id);
   }, [id]);
+
+  const fetchAndSetData = async (id: number) => {
+    try {
+      const [OrderData, ProductsForOrderData, ProductsData] = await Promise.all(
+        [fetchOrderByID(id), fetchProductsForOrder(id), fetchProducts()]
+      );
+      setOrder(OrderData);
+      setOrderProducts(ProductsForOrderData);
+      setAvailableProducts(ProductsData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   const showErrorToast = () => {
     errorToast.current?.show({
@@ -133,18 +95,12 @@ const EditOrder = ({ id }: { id: string | number }) => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_number: orderData.order_number })
+          body: JSON.stringify({ order_number: order.order_number })
         }
       );
       if (!orderResponse.ok) throw new Error('Failed to update order');
 
-      // Fetch existing order products
-      const existingResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/order_products?order_id=${id}`
-      );
-      if (!existingResponse.ok)
-        throw new Error('Failed to fetch existing products');
-      const existingProducts = await existingResponse.json();
+      const existingProducts = await fetchProductsForOrder(id);
 
       // Sync orderProducts
       for (const product of orderProducts) {
@@ -173,7 +129,7 @@ const EditOrder = ({ id }: { id: string | number }) => {
     }
   };
   const handleChange = (field: string, value: string) => {
-    setOrderData((prev) => ({ ...prev, [field]: value }));
+    setOrder((prev) => ({ ...prev, [field]: value }));
   };
 
   const actionsButtons = (rowData: OrderProduct) => (
@@ -217,20 +173,24 @@ const EditOrder = ({ id }: { id: string | number }) => {
   return (
     <main>
       <Toast ref={errorToast} />
-      <h1>Edit Order #{orderData.order_number}</h1>
+      <h1>Edit Order #{order.order_number}</h1>
       <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
         <div className="field p-mb-4">
           <label htmlFor="order_number">Order Number</label>
           <InputText
             id="order_number"
-            value={orderData.order_number}
+            value={order.order_number}
             onChange={(e) => handleChange('order_number', e.target.value)}
             required
           />
         </div>
         <div className="field p-mb-4">
           <label htmlFor="date">Date</label>
-          <InputText id="date" value={orderData.date} disabled />
+          <InputText
+            id="date"
+            value={new Date(order.date).toLocaleDateString()}
+            disabled
+          />
         </div>
         <div className="field p-mb-4">
           <label htmlFor="num_products"># Products</label>

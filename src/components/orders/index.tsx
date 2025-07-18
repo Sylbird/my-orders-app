@@ -5,22 +5,15 @@ import { Button } from 'primereact/button';
 import { useNavigate } from 'react-router';
 import { Toolbar } from 'primereact/toolbar';
 import type { Order } from './types';
+import { fetchOrders } from './AddOrEdit/api';
 
 const Orders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/orders`
-      );
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      setOrders(data);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    }
-  };
+
+  useEffect(() => {
+    fetchAndSetData();
+  }, []);
 
   const deleteOrder = async (rowData: Order) => {
     try {
@@ -31,15 +24,20 @@ const Orders = () => {
         }
       );
       if (!response.ok) throw new Error('Failed to delete order');
-      fetchOrders();
+      fetchAndSetData();
     } catch (error) {
       console.error('Error deleting order:', error);
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const fetchAndSetData = async () => {
+    try {
+      const OrdersData = await fetchOrders();
+      setOrders(OrdersData);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
 
   const actionButtons = (rowData: Order) => {
     return (

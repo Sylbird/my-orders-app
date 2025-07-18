@@ -16,7 +16,7 @@ const AddOrEditOrder = () => {
   if (id === 'new') {
     return <AddOrder />;
   } else if (id && !isNaN(parseInt(id))) {
-    return <EditOrder id={id} />;
+    return <EditOrder id={parseInt(id)} />;
   }
 };
 

@@ -9,6 +9,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import type { Order, OrderProduct, Product } from '../types';
 import { Toast } from 'primereact/toast';
+import { fetchProducts } from './api';
 
 const AddOrder = () => {
   const navigate = useNavigate();
@@ -26,20 +27,17 @@ const AddOrder = () => {
   const errorToast = useRef<Toast>(null);
 
   useEffect(() => {
-    const fetchAvailableProducts = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/products`
-        );
-        if (!response.ok) throw new Error('Failed to fetch products');
-        const data = await response.json();
-        setAvailableProducts(data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    };
-    fetchAvailableProducts();
+    fetchAndSetData();
   }, []);
+
+  const fetchAndSetData = async () => {
+    try {
+      const serverAvailableProducts = await fetchProducts();
+      setAvailableProducts(serverAvailableProducts);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
 
   const showErrorToast = () => {
     errorToast.current?.show({
