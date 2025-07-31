@@ -7,9 +7,9 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { Dialog } from 'primereact/dialog';
 import { useNavigate } from 'react-router';
-import type { Order, OrderProduct, Product } from '../types';
 import { Toast } from 'primereact/toast';
 import { fetchProducts, fetchOrderByID, fetchProductsForOrder } from './api';
+import type { Order, OrderProduct, Product } from '../types';
 
 const EditOrder = ({ id }: { id: number }) => {
   const navigate = useNavigate();
@@ -173,8 +173,8 @@ const EditOrder = ({ id }: { id: number }) => {
   return (
     <main>
       <Toast ref={errorToast} />
-      <h1>Edit Order #{order.order_number}</h1>
       <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
+        <h2 className="mt-0">Edit Order {id}</h2>
         <div className="field p-mb-4">
           <label htmlFor="order_number">Order Number</label>
           <InputText

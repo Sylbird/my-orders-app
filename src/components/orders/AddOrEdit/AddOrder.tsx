@@ -7,9 +7,9 @@ import { Column } from 'primereact/column';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
-import type { Order, OrderProduct, Product } from '../types';
 import { Toast } from 'primereact/toast';
 import { fetchProducts } from './api';
+import type { Order, OrderProduct, Product } from '../types';
 
 const AddOrder = () => {
   const navigate = useNavigate();
@@ -139,8 +139,8 @@ const AddOrder = () => {
   return (
     <main>
       <Toast ref={errorToast} />
-      <h1>Add Order</h1>
       <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
+        <h2 className="mt-0">Add New Order</h2>
         <div className="field p-mb-4">
           <label htmlFor="order_number">Order Number</label>
           <InputText

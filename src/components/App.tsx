@@ -6,7 +6,7 @@ const App = () => {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="p-6 bg-white rounded-lg shadow-md max-w-md w-full text-center">
+      <div className="p-6 rounded-lg shadow-md max-w-md w-full text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">
           Welcome to Order Management
         </h1>

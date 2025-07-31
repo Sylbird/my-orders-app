@@ -60,14 +60,6 @@ const Orders = () => {
     );
   };
 
-  const leftToolbarTemplate = () => {
-    return (
-      <div className="flex flex-wrap gap-2">
-        <h2>You can also create a new Order:</h2>
-      </div>
-    );
-  };
-
   const rightToolbarTemplate = () => {
     return (
       <Button
@@ -80,12 +72,11 @@ const Orders = () => {
   };
 
   return (
-    <div>
-      <h1>My Orders</h1>
+    <main>
       <div>
         <Toolbar
           className="mb-4"
-          start={leftToolbarTemplate}
+          start={<h1 className="m-0">My Orders</h1>}
           end={rightToolbarTemplate}
         ></Toolbar>
         <DataTable
@@ -116,7 +107,7 @@ const Orders = () => {
           ></Column>
         </DataTable>
       </div>
-    </div>
+    </main>
   );
 };
 
