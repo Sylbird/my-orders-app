@@ -8,7 +8,7 @@ import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { Toast } from 'primereact/toast';
-import { fetchProducts } from './api';
+import { addOrder, addProductForOrder, fetchProducts } from './api';
 import type { Order, OrderProduct, Product } from '../types';
 
 const AddOrder = () => {
@@ -60,7 +60,15 @@ const AddOrder = () => {
       quantity,
       total_price: selectedProduct.unit_price * quantity
     };
-    setOrderProducts([...orderProducts, newOrderProduct]);
+    setOrderProducts((prev) => {
+      const newOrderProducts = [...prev, newOrderProduct];
+      setOrder({
+        ...order,
+        num_products: newOrderProducts.reduce((sum, p) => sum + p.quantity, 0),
+        final_price: newOrderProducts.reduce((sum, p) => sum + p.total_price, 0)
+      });
+      return newOrderProducts;
+    });
     setShowModal(false);
     setSelectedProduct(null);
     setQuantity(1);
@@ -68,37 +76,19 @@ const AddOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (orderProducts.length === 0) return showErrorToast();
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/orders`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_number: order.order_number })
-        }
-      );
-      if (!response.ok) throw new Error('Failed to create order');
-      const newOrder = await response.json();
-
+      const newOrder = await addOrder(order);
       // Add products to order
       for (const product of orderProducts) {
-        const productData = {
+        const newOrderProduct: OrderProduct = {
           order_id: newOrder.id,
           product_id: product.product_id,
-          quantity: product.quantity
+          quantity: product.quantity,
+          total_price: product.total_price
         };
-        const productResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/order_products`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
-          }
-        );
-        if (!productResponse.ok) throw new Error('Failed to add product');
+        await addProductForOrder(newOrderProduct);
       }
 
       navigate('/my-orders');
@@ -158,9 +148,7 @@ const AddOrder = () => {
           <label htmlFor="num_products"># Products</label>
           <InputText
             id="num_products"
-            value={orderProducts
-              .reduce((sum, p) => sum + p.quantity, 0)
-              .toString()}
+            value={order.num_products.toString()}
             disabled
           />
         </div>
@@ -168,9 +156,7 @@ const AddOrder = () => {
           <label htmlFor="final_price">Final Price</label>
           <InputText
             id="final_price"
-            value={orderProducts
-              .reduce((sum, p) => sum + p.total_price, 0)
-              .toFixed(2)}
+            value={order.final_price.toFixed(2)}
             disabled
           />
         </div>
@@ -187,7 +173,7 @@ const AddOrder = () => {
         <Column
           field="unit_price"
           header="Unit Price"
-          body={(rowData: OrderProduct) => rowData.unit_price.toFixed(2)}
+          body={(rowData: OrderProduct) => rowData.unit_price?.toFixed(2)}
         />
         <Column field="quantity" header="Qty" />
         <Column

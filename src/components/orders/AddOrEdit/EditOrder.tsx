@@ -8,10 +8,16 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Dialog } from 'primereact/dialog';
 import { useNavigate } from 'react-router';
 import { Toast } from 'primereact/toast';
-import { fetchProducts, fetchOrderByID, fetchProductsForOrder } from './api';
+import {
+  fetchProducts,
+  fetchOrderByID,
+  fetchProductsForOrder,
+  deleteProductFromOrder,
+  addProductForOrder
+} from './api';
 import type { Order, OrderProduct, Product } from '../types';
 
-const EditOrder = ({ id }: { id: number }) => {
+const EditOrder = ({ orderId }: { orderId: number }) => {
   const navigate = useNavigate();
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -27,13 +33,17 @@ const EditOrder = ({ id }: { id: number }) => {
   const errorToast = useRef<Toast>(null);
 
   useEffect(() => {
-    fetchAndSetData(id);
-  }, [id]);
+    fetchAndSetData(orderId);
+  }, [orderId]);
 
-  const fetchAndSetData = async (id: number) => {
+  const fetchAndSetData = async (orderId: number) => {
     try {
       const [OrderData, ProductsForOrderData, ProductsData] = await Promise.all(
-        [fetchOrderByID(id), fetchProductsForOrder(id), fetchProducts()]
+        [
+          fetchOrderByID(orderId),
+          fetchProductsForOrder(orderId),
+          fetchProducts()
+        ]
       );
       setOrder(OrderData);
       setOrderProducts(ProductsForOrderData);
@@ -51,76 +61,66 @@ const EditOrder = ({ id }: { id: number }) => {
     });
   };
 
-  const handleDeleteProduct = async (product_id: number) => {
+  const handleDeleteProduct = async (product_id: number, orderId: number) => {
     try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_BACKEND_API
-        }/order_products?order_id=${id}&product_id=${product_id}`,
-        { method: 'DELETE' }
-      );
-      if (!response.ok) throw new Error('Failed to delete product');
-      setOrderProducts(
-        orderProducts.filter((p) => p.product_id !== product_id)
-      );
+      await deleteProductFromOrder(orderId, product_id);
+      setOrderProducts((prevOrderProducts) => {
+        const updOrdProds = prevOrderProducts.filter(
+          (p) => p.product_id !== product_id
+        );
+        setOrder((prevOrder) => ({
+          ...prevOrder,
+          num_products: updOrdProds.reduce((sum, p) => sum + p.quantity, 0),
+          final_price: updOrdProds.reduce((sum, p) => sum + p.total_price, 0)
+        }));
+        return updOrdProds;
+      });
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.log('Error deleting Product:', error);
     }
   };
 
-  const handleAddProduct = () => {
-    if (!selectedProduct || !quantity) return;
-    const newOrderProduct: OrderProduct = {
-      product_id: selectedProduct.id,
-      name: selectedProduct.name,
-      unit_price: selectedProduct.unit_price,
-      quantity,
-      total_price: selectedProduct.unit_price * quantity
-    };
-    setOrderProducts([...orderProducts, newOrderProduct]);
-    setShowModal(false);
-    setSelectedProduct(null);
-    setQuantity(1);
+  const handleAddProduct = async (orderId: number) => {
+    try {
+      if (!selectedProduct || !quantity) return;
+      const newOrderProduct: OrderProduct = {
+        order_id: orderId,
+        product_id: selectedProduct.id,
+        name: selectedProduct.name,
+        unit_price: selectedProduct.unit_price,
+        quantity,
+        total_price: selectedProduct.unit_price * quantity
+      };
+      setOrderProducts((prev) => {
+        const updOrdProds = [...prev, newOrderProduct];
+        setOrder({
+          ...order,
+          num_products: updOrdProds.reduce((sum, p) => sum + p.quantity, 0),
+          final_price: updOrdProds.reduce((sum, p) => sum + p.total_price, 0)
+        });
+        return updOrdProds;
+      });
+      setShowModal(false);
+      setSelectedProduct(null);
+      setQuantity(1);
+    } catch (error) {
+      console.log('Error adding Product:', error);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, orderId: number) => {
     e.preventDefault();
 
     if (orderProducts.length === 0) return showErrorToast();
 
     try {
-      // Update order_number
-      const orderResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_API}/orders/${id}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_number: order.order_number })
-        }
+      const serverOrderProducts = await fetchProductsForOrder(orderId);
+      const onlyNewProducts = orderProducts.filter(
+        (p) => !serverOrderProducts.some((sp) => sp.product_id === p.product_id)
       );
-      if (!orderResponse.ok) throw new Error('Failed to update order');
 
-      const existingProducts = await fetchProductsForOrder(id);
-
-      // Sync orderProducts
-      for (const product of orderProducts) {
-        const existing = existingProducts.find(
-          (p: OrderProduct) => p.product_id === product.product_id
-        );
-        const method = existing ? 'PUT' : 'POST';
-        const productResponse = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/order_products`,
-          {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              order_id: id,
-              product_id: product.product_id,
-              quantity: product.quantity
-            })
-          }
-        );
-        if (!productResponse.ok) throw new Error('Failed to sync product');
+      for (const onlyNewProduct of onlyNewProducts) {
+        await addProductForOrder(onlyNewProduct);
       }
 
       navigate('/my-orders');
@@ -128,15 +128,12 @@ const EditOrder = ({ id }: { id: number }) => {
       console.error('Error Updating Order');
     }
   };
-  const handleChange = (field: string, value: string) => {
-    setOrder((prev) => ({ ...prev, [field]: value }));
-  };
 
   const actionsButtons = (rowData: OrderProduct) => (
     <Button
       icon="pi pi-trash"
       className="p-button-text p-button-rounded p-button-danger"
-      onClick={() => handleDeleteProduct(rowData.product_id)}
+      onClick={() => handleDeleteProduct(rowData.product_id, orderId)}
       aria-label={`Delete product ${rowData.name}`}
     />
   );
@@ -152,7 +149,7 @@ const EditOrder = ({ id }: { id: number }) => {
       <Button
         label="Add"
         icon="pi pi-check"
-        onClick={handleAddProduct}
+        onClick={() => handleAddProduct(orderId)}
         disabled={!selectedProduct || !quantity}
       />
     </div>
@@ -173,16 +170,14 @@ const EditOrder = ({ id }: { id: number }) => {
   return (
     <main>
       <Toast ref={errorToast} />
-      <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
-        <h2 className="mt-0">Edit Order {id}</h2>
+      <form
+        onSubmit={(e) => handleSubmit(e, orderId)}
+        className="p-card p-4 w-min mb-4"
+      >
+        <h2 className="mt-0">Edit Order {orderId}</h2>
         <div className="field p-mb-4">
           <label htmlFor="order_number">Order Number</label>
-          <InputText
-            id="order_number"
-            value={order.order_number}
-            onChange={(e) => handleChange('order_number', e.target.value)}
-            required
-          />
+          <InputText id="order_number" value={order.order_number} disabled />
         </div>
         <div className="field p-mb-4">
           <label htmlFor="date">Date</label>
@@ -196,9 +191,7 @@ const EditOrder = ({ id }: { id: number }) => {
           <label htmlFor="num_products"># Products</label>
           <InputText
             id="num_products"
-            value={orderProducts
-              .reduce((sum, p) => sum + p.quantity, 0)
-              .toString()}
+            value={order.num_products.toString()}
             disabled
           />
         </div>
@@ -206,9 +199,7 @@ const EditOrder = ({ id }: { id: number }) => {
           <label htmlFor="final_price">Final Price</label>
           <InputText
             id="final_price"
-            value={orderProducts
-              .reduce((sum, p) => sum + p.total_price, 0)
-              .toFixed(2)}
+            value={order.final_price.toFixed(2)}
             disabled
           />
         </div>
@@ -225,7 +216,7 @@ const EditOrder = ({ id }: { id: number }) => {
         <Column
           field="unit_price"
           header="Unit Price"
-          body={(rowData: OrderProduct) => rowData.unit_price.toFixed(2)}
+          body={(rowData: OrderProduct) => rowData.unit_price?.toFixed(2)}
         />
         <Column field="quantity" header="Qty" />
         <Column
