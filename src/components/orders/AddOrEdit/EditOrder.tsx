@@ -1,28 +1,21 @@
+import ProductDialog from './ProductDialog';
 import { useState, useEffect, useRef } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { Dialog } from 'primereact/dialog';
 import { useNavigate } from 'react-router';
 import { Toast } from 'primereact/toast';
 import {
-  fetchProducts,
   fetchOrderByID,
   fetchProductsForOrder,
   deleteProductFromOrder,
   addProductForOrder
 } from './api';
-import type { Order, OrderProduct, Product } from '../types';
+import type { Order, OrderProduct } from '../types';
 
 const EditOrder = ({ orderId }: { orderId: number }) => {
   const navigate = useNavigate();
-  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
   const [order, setOrder] = useState<Order>({
     order_number: '',
     date: new Date().toLocaleDateString(),
@@ -38,16 +31,12 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
 
   const fetchAndSetData = async (orderId: number) => {
     try {
-      const [OrderData, ProductsForOrderData, ProductsData] = await Promise.all(
-        [
-          fetchOrderByID(orderId),
-          fetchProductsForOrder(orderId),
-          fetchProducts()
-        ]
-      );
+      const [OrderData, ProductsForOrderData] = await Promise.all([
+        fetchOrderByID(orderId),
+        fetchProductsForOrder(orderId)
+      ]);
       setOrder(OrderData);
       setOrderProducts(ProductsForOrderData);
-      setAvailableProducts(ProductsData);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -77,34 +66,6 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
       });
     } catch (error) {
       console.log('Error deleting Product:', error);
-    }
-  };
-
-  const handleAddProduct = async (orderId: number) => {
-    try {
-      if (!selectedProduct || !quantity) return;
-      const newOrderProduct: OrderProduct = {
-        order_id: orderId,
-        product_id: selectedProduct.id,
-        name: selectedProduct.name,
-        unit_price: selectedProduct.unit_price,
-        quantity,
-        total_price: selectedProduct.unit_price * quantity
-      };
-      setOrderProducts((prev) => {
-        const updOrdProds = [...prev, newOrderProduct];
-        setOrder({
-          ...order,
-          num_products: updOrdProds.reduce((sum, p) => sum + p.quantity, 0),
-          final_price: updOrdProds.reduce((sum, p) => sum + p.total_price, 0)
-        });
-        return updOrdProds;
-      });
-      setShowModal(false);
-      setSelectedProduct(null);
-      setQuantity(1);
-    } catch (error) {
-      console.log('Error adding Product:', error);
     }
   };
 
@@ -138,32 +99,14 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
     />
   );
 
-  const modalFooter = (
-    <div>
-      <Button
-        label="Cancel"
-        icon="pi pi-times"
-        onClick={() => setShowModal(false)}
-        className="p-button-text"
-      />
-      <Button
-        label="Add"
-        icon="pi pi-check"
-        onClick={() => handleAddProduct(orderId)}
-        disabled={!selectedProduct || !quantity}
-      />
-    </div>
-  );
-
   const dataTableHeader = (
     <div className="flex flex-wrap align-items-center justify-content-between gap-2">
       <span className="text-xl text-900 font-bold">Products in the order</span>
-      <Button
-        icon="pi pi-plus"
-        onClick={() => setShowModal(true)}
-        className="p-mb-3"
-        rounded
-      />
+      <ProductDialog
+        orderId={orderId}
+        setOrderProducts={setOrderProducts}
+        setOrder={setOrder}
+      ></ProductDialog>
     </div>
   );
 
@@ -226,37 +169,6 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
         />
         <Column header="Actions" body={actionsButtons} />
       </DataTable>
-      <Dialog
-        header="Add New Product"
-        visible={showModal}
-        style={{ width: '30rem' }}
-        footer={modalFooter}
-        onHide={() => setShowModal(false)}
-      >
-        <div className="p-fluid">
-          <div className="field p-mb-4">
-            <label htmlFor="product">Product</label>
-            <Dropdown
-              id="product"
-              value={selectedProduct}
-              options={availableProducts}
-              optionLabel="name"
-              onChange={(e) => setSelectedProduct(e.value)}
-              placeholder="Select a product"
-            />
-          </div>
-          <div className="field p-mb-4">
-            <label htmlFor="quantity">Quantity</label>
-            <InputNumber
-              id="quantity"
-              value={quantity}
-              onValueChange={(e) => setQuantity(e.value || 1)}
-              min={1}
-              maxFractionDigits={0}
-            />
-          </div>
-        </div>
-      </Dialog>
     </main>
   );
 };

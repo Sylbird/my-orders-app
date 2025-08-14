@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import ProductDialog from './ProductDialog';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Dialog } from 'primereact/dialog';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
 import { Toast } from 'primereact/toast';
-import { addOrder, addProductForOrder, fetchProducts } from './api';
-import type { Order, OrderProduct, Product } from '../types';
+import { addOrder, addProductForOrder } from './api';
+import type { Order, OrderProduct } from '../types';
 
 const AddOrder = () => {
   const navigate = useNavigate();
@@ -20,24 +18,7 @@ const AddOrder = () => {
     final_price: 0
   });
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
-  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
   const errorToast = useRef<Toast>(null);
-
-  useEffect(() => {
-    fetchAndSetData();
-  }, []);
-
-  const fetchAndSetData = async () => {
-    try {
-      const serverAvailableProducts = await fetchProducts();
-      setAvailableProducts(serverAvailableProducts);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  };
 
   const showErrorToast = () => {
     errorToast.current?.show({
@@ -49,29 +30,6 @@ const AddOrder = () => {
 
   const handleChange = (field: string, value: string) => {
     setOrder((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleAddProduct = () => {
-    if (!selectedProduct || !quantity) return;
-    const newOrderProduct: OrderProduct = {
-      product_id: selectedProduct.id,
-      name: selectedProduct.name,
-      unit_price: selectedProduct.unit_price,
-      quantity,
-      total_price: selectedProduct.unit_price * quantity
-    };
-    setOrderProducts((prev) => {
-      const newOrderProducts = [...prev, newOrderProduct];
-      setOrder({
-        ...order,
-        num_products: newOrderProducts.reduce((sum, p) => sum + p.quantity, 0),
-        final_price: newOrderProducts.reduce((sum, p) => sum + p.total_price, 0)
-      });
-      return newOrderProducts;
-    });
-    setShowModal(false);
-    setSelectedProduct(null);
-    setQuantity(1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,32 +55,14 @@ const AddOrder = () => {
     }
   };
 
-  const modalFooter = (
-    <div>
-      <Button
-        label="Cancel"
-        icon="pi pi-times"
-        onClick={() => setShowModal(false)}
-        className="p-button-text"
-      />
-      <Button
-        label="Add"
-        icon="pi pi-check"
-        onClick={handleAddProduct}
-        disabled={!selectedProduct || !quantity}
-      />
-    </div>
-  );
-
   const dataTableHeader = (
     <div className="flex flex-wrap align-items-center justify-content-between gap-2">
       <span className="text-xl text-900 font-bold">Products in the order</span>
-      <Button
-        icon="pi pi-plus"
-        onClick={() => setShowModal(true)}
-        className="p-mb-3"
-        rounded
-      />
+      <ProductDialog
+        orderId={undefined}
+        setOrderProducts={setOrderProducts}
+        setOrder={setOrder}
+      ></ProductDialog>
     </div>
   );
 
@@ -182,37 +122,6 @@ const AddOrder = () => {
           body={(rowData: OrderProduct) => rowData.total_price.toFixed(2)}
         />
       </DataTable>
-      <Dialog
-        header="Add New Product"
-        visible={showModal}
-        style={{ width: '30rem' }}
-        footer={modalFooter}
-        onHide={() => setShowModal(false)}
-      >
-        <div className="p-fluid">
-          <div className="field p-mb-4">
-            <label htmlFor="product">Product</label>
-            <Dropdown
-              id="product"
-              value={selectedProduct}
-              options={availableProducts}
-              optionLabel="name"
-              onChange={(e) => setSelectedProduct(e.value)}
-              placeholder="Select a product"
-            />
-          </div>
-          <div className="field p-mb-4">
-            <label htmlFor="quantity">Quantity</label>
-            <InputNumber
-              id="quantity"
-              value={quantity}
-              onValueChange={(e) => setQuantity(e.value || 1)}
-              min={1}
-              maxFractionDigits={0}
-            />
-          </div>
-        </div>
-      </Dialog>
     </main>
   );
 };
