@@ -16,6 +16,7 @@ import type { Order, OrderProduct } from '../types';
 
 const EditOrder = ({ orderId }: { orderId: number }) => {
   const navigate = useNavigate();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [order, setOrder] = useState<Order>({
     order_number: '',
     date: new Date().toLocaleDateString(),
@@ -102,13 +103,26 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
   const dataTableHeader = (
     <div className="flex flex-wrap align-items-center justify-content-between gap-2">
       <span className="text-xl text-900 font-bold">Products in the order</span>
-      <ProductDialog
-        orderId={orderId}
-        setOrderProducts={setOrderProducts}
-        setOrder={setOrder}
-      ></ProductDialog>
+      <Button
+        icon="pi pi-plus"
+        onClick={() => setIsDialogOpen(true)}
+        className="p-mb-3"
+        rounded
+      />
     </div>
   );
+
+  const handleAddProduct = (newOrderProduct: OrderProduct) => {
+    setOrderProducts((prev) => {
+      const newOrderProducts = [...prev, newOrderProduct];
+      setOrder((prev) => ({
+        ...prev,
+        num_products: newOrderProducts.reduce((sum, p) => sum + p.quantity, 0),
+        final_price: newOrderProducts.reduce((sum, p) => sum + p.total_price, 0)
+      }));
+      return newOrderProducts;
+    });
+  };
 
   return (
     <main>
@@ -169,6 +183,12 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
         />
         <Column header="Actions" body={actionsButtons} />
       </DataTable>
+      <ProductDialog
+        orderId={orderId}
+        visible={isDialogOpen}
+        closeDialog={() => setIsDialogOpen(false)}
+        addProduct={handleAddProduct}
+      ></ProductDialog>
     </main>
   );
 };

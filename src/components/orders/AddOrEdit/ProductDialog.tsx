@@ -4,20 +4,21 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { useState } from 'react';
 import { fetchProducts } from './api';
-import type { Order, OrderProduct, Product } from '../types';
+import type { OrderProduct, Product } from '../types';
 
-type DialogProps = {
+type ProductDialogProps = {
   orderId: number | undefined;
-  setOrderProducts: React.Dispatch<React.SetStateAction<OrderProduct[]>>;
-  setOrder: React.Dispatch<React.SetStateAction<Order>>;
+  visible: boolean;
+  closeDialog: () => void;
+  addProduct: (product: OrderProduct) => void;
 };
 
 const ProductDialog = ({
   orderId,
-  setOrderProducts,
-  setOrder
-}: DialogProps) => {
-  const [showDialog, setShowDialog] = useState(false);
+  visible,
+  closeDialog,
+  addProduct
+}: ProductDialogProps) => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
@@ -41,18 +42,11 @@ const ProductDialog = ({
       quantity,
       total_price: selectedProduct.unit_price * quantity
     };
-    setOrderProducts((prev) => {
-      const newOrderProducts = [...prev, newOrderProduct];
-      setOrder((prev) => ({
-        ...prev,
-        num_products: newOrderProducts.reduce((sum, p) => sum + p.quantity, 0),
-        final_price: newOrderProducts.reduce((sum, p) => sum + p.total_price, 0)
-      }));
-      return newOrderProducts;
-    });
-    setShowDialog(false);
+
+    addProduct(newOrderProduct);
     setSelectedProduct(null);
     setQuantity(1);
+    closeDialog();
   };
 
   const dialogFooter = (
@@ -60,7 +54,7 @@ const ProductDialog = ({
       <Button
         label="Cancel"
         icon="pi pi-times"
-        onClick={() => setShowDialog(false)}
+        onClick={() => closeDialog()}
         className="p-button-text"
       />
       <Button
@@ -73,46 +67,38 @@ const ProductDialog = ({
   );
 
   return (
-    <>
-      <Button
-        icon="pi pi-plus"
-        onClick={() => setShowDialog(true)}
-        className="p-mb-3"
-        rounded
-      />
-      <Dialog
-        onShow={() => fetchAndSetData()}
-        footer={dialogFooter}
-        header="Add New Product"
-        style={{ width: '30rem' }}
-        visible={showDialog}
-        onHide={() => setShowDialog(false)}
-      >
-        <div className="p-fluid">
-          <div className="field p-mb-4">
-            <label htmlFor="product">Product</label>
-            <Dropdown
-              id="product"
-              value={selectedProduct}
-              options={availableProducts}
-              optionLabel="name"
-              onChange={(e) => setSelectedProduct(e.value)}
-              placeholder="Select a product"
-            />
-          </div>
-          <div className="field p-mb-4">
-            <label htmlFor="quantity">Quantity</label>
-            <InputNumber
-              id="quantity"
-              value={quantity}
-              onValueChange={(e) => setQuantity(e.value || 1)}
-              min={1}
-              maxFractionDigits={0}
-            />
-          </div>
+    <Dialog
+      onShow={() => fetchAndSetData()}
+      footer={dialogFooter}
+      header="Add New Product"
+      style={{ width: '30rem' }}
+      visible={visible}
+      onHide={() => closeDialog()}
+    >
+      <div className="p-fluid">
+        <div className="field p-mb-4">
+          <label htmlFor="product">Product</label>
+          <Dropdown
+            id="product"
+            value={selectedProduct}
+            options={availableProducts}
+            optionLabel="name"
+            onChange={(e) => setSelectedProduct(e.value)}
+            placeholder="Select a product"
+          />
         </div>
-      </Dialog>
-    </>
+        <div className="field p-mb-4">
+          <label htmlFor="quantity">Quantity</label>
+          <InputNumber
+            id="quantity"
+            value={quantity}
+            onValueChange={(e) => setQuantity(e.value || 1)}
+            min={1}
+            maxFractionDigits={0}
+          />
+        </div>
+      </div>
+    </Dialog>
   );
 };
 
