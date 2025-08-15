@@ -1,10 +1,9 @@
+import ProductDataTable from './ProductDataTable';
 import ProductDialog from './ProductDialog';
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { Toast } from 'primereact/toast';
 import { addOrder, addProductForOrder } from './api';
 import type { Order, OrderProduct } from '../types';
@@ -35,6 +34,7 @@ const AddOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (orderProducts.length === 0) return showErrorToast();
 
     try {
@@ -49,24 +49,11 @@ const AddOrder = () => {
         };
         await addProductForOrder(newOrderProduct);
       }
-
       navigate('/my-orders');
     } catch (error) {
       console.error('Error saving order:', error);
     }
   };
-
-  const dataTableHeader = (
-    <div className="flex flex-wrap align-items-center justify-content-between gap-2">
-      <span className="text-xl text-900 font-bold">Products in the order</span>
-      <Button
-        icon="pi pi-plus"
-        onClick={() => setIsDialogOpen(true)}
-        className="p-mb-3"
-        rounded
-      />
-    </div>
-  );
 
   const handleAddProduct = (newOrderProduct: OrderProduct) => {
     setOrderProducts((prev) => {
@@ -78,6 +65,24 @@ const AddOrder = () => {
       }));
       return newOrderProducts;
     });
+  };
+
+  const handleDeleteProduct = async (productId: number) => {
+    try {
+      setOrderProducts((prevOrderProducts) => {
+        const updOrdProds = prevOrderProducts.filter(
+          (p) => p.product_id !== productId
+        );
+        setOrder((prevOrder) => ({
+          ...prevOrder,
+          num_products: updOrdProds.reduce((sum, p) => sum + p.quantity, 0),
+          final_price: updOrdProds.reduce((sum, p) => sum + p.total_price, 0)
+        }));
+        return updOrdProds;
+      });
+    } catch (error) {
+      console.error('Error deleting Product:', error);
+    }
   };
 
   return (
@@ -116,28 +121,12 @@ const AddOrder = () => {
         </div>
         <Button label="Save" icon="pi pi-save" type="submit" />
       </form>
-      <DataTable
-        showGridlines
-        value={orderProducts}
-        tableStyle={{ minWidth: '50rem' }}
-        header={dataTableHeader}
-      >
-        <Column field="product_id" header="ID" />
-        <Column field="name" header="Name" />
-        <Column
-          field="unit_price"
-          header="Unit Price"
-          body={(rowData: OrderProduct) => rowData.unit_price?.toFixed(2)}
-        />
-        <Column field="quantity" header="Qty" />
-        <Column
-          field="total_price"
-          header="Total Price"
-          body={(rowData: OrderProduct) => rowData.total_price.toFixed(2)}
-        />
-      </DataTable>
+      <ProductDataTable
+        onAddProductClick={() => setIsDialogOpen(true)}
+        orderProducts={orderProducts}
+        deleteProduct={handleDeleteProduct}
+      ></ProductDataTable>
       <ProductDialog
-        orderId={undefined}
         visible={isDialogOpen}
         closeDialog={() => setIsDialogOpen(false)}
         addProduct={handleAddProduct}

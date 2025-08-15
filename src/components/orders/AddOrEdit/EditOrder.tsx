@@ -1,9 +1,8 @@
+import ProductDataTable from './ProductDataTable';
 import ProductDialog from './ProductDialog';
 import { useState, useEffect, useRef } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import { useNavigate } from 'react-router';
 import { Toast } from 'primereact/toast';
 import {
@@ -51,9 +50,15 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
     });
   };
 
-  const handleDeleteProduct = async (product_id: number, orderId: number) => {
+  const handleDeleteProduct = async (
+    product_id: number,
+    order_id: number | undefined
+  ) => {
     try {
-      await deleteProductFromOrder(orderId, product_id);
+      // Only request a delete if the product exist on the DB
+      if (order_id !== undefined) {
+        await deleteProductFromOrder(order_id, product_id);
+      }
       setOrderProducts((prevOrderProducts) => {
         const updOrdProds = prevOrderProducts.filter(
           (p) => p.product_id !== product_id
@@ -80,9 +85,14 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
       const onlyNewProducts = orderProducts.filter(
         (p) => !serverOrderProducts.some((sp) => sp.product_id === p.product_id)
       );
-
       for (const onlyNewProduct of onlyNewProducts) {
-        await addProductForOrder(onlyNewProduct);
+        const newOrderProduct: OrderProduct = {
+          order_id: orderId,
+          product_id: onlyNewProduct.product_id,
+          quantity: onlyNewProduct.quantity,
+          total_price: onlyNewProduct.total_price
+        };
+        await addProductForOrder(newOrderProduct);
       }
 
       navigate('/my-orders');
@@ -90,27 +100,6 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
       console.error('Error Updating Order');
     }
   };
-
-  const actionsButtons = (rowData: OrderProduct) => (
-    <Button
-      icon="pi pi-trash"
-      className="p-button-text p-button-rounded p-button-danger"
-      onClick={() => handleDeleteProduct(rowData.product_id, orderId)}
-      aria-label={`Delete product ${rowData.name}`}
-    />
-  );
-
-  const dataTableHeader = (
-    <div className="flex flex-wrap align-items-center justify-content-between gap-2">
-      <span className="text-xl text-900 font-bold">Products in the order</span>
-      <Button
-        icon="pi pi-plus"
-        onClick={() => setIsDialogOpen(true)}
-        className="p-mb-3"
-        rounded
-      />
-    </div>
-  );
 
   const handleAddProduct = (newOrderProduct: OrderProduct) => {
     setOrderProducts((prev) => {
@@ -162,29 +151,12 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
         </div>
         <Button label="Save" icon="pi pi-save" type="submit" />
       </form>
-      <DataTable
-        showGridlines
-        value={orderProducts}
-        tableStyle={{ minWidth: '50rem' }}
-        header={dataTableHeader}
-      >
-        <Column field="product_id" header="ID" />
-        <Column field="name" header="Name" />
-        <Column
-          field="unit_price"
-          header="Unit Price"
-          body={(rowData: OrderProduct) => rowData.unit_price?.toFixed(2)}
-        />
-        <Column field="quantity" header="Qty" />
-        <Column
-          field="total_price"
-          header="Total Price"
-          body={(rowData: OrderProduct) => rowData.total_price.toFixed(2)}
-        />
-        <Column header="Actions" body={actionsButtons} />
-      </DataTable>
+      <ProductDataTable
+        onAddProductClick={() => setIsDialogOpen(true)}
+        orderProducts={orderProducts}
+        deleteProduct={handleDeleteProduct}
+      />
       <ProductDialog
-        orderId={orderId}
         visible={isDialogOpen}
         closeDialog={() => setIsDialogOpen(false)}
         addProduct={handleAddProduct}
