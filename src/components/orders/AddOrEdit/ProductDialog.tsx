@@ -2,19 +2,17 @@ import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchProducts } from './api';
 import type { OrderProduct, Product } from '../types';
 
 type ProductDialogProps = {
-  orderId: number | undefined;
   visible: boolean;
   closeDialog: () => void;
   addProduct: (product: OrderProduct) => void;
 };
 
 const ProductDialog = ({
-  orderId,
   visible,
   closeDialog,
   addProduct
@@ -22,6 +20,10 @@ const ProductDialog = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchAndSetData();
+  }, []);
 
   const fetchAndSetData = async () => {
     try {
@@ -32,10 +34,9 @@ const ProductDialog = ({
     }
   };
 
-  const handleAddProduct = (order_id: number | undefined) => {
+  const handleAddProduct = () => {
     if (!selectedProduct || !quantity) return;
     const newOrderProduct: OrderProduct = {
-      order_id: order_id || undefined,
       product_id: selectedProduct.id,
       name: selectedProduct.name,
       unit_price: selectedProduct.unit_price,
@@ -60,7 +61,7 @@ const ProductDialog = ({
       <Button
         label="Add"
         icon="pi pi-check"
-        onClick={() => handleAddProduct(orderId || undefined)}
+        onClick={() => handleAddProduct()}
         disabled={!selectedProduct || !quantity}
       />
     </div>
@@ -68,7 +69,6 @@ const ProductDialog = ({
 
   return (
     <Dialog
-      onShow={() => fetchAndSetData()}
       footer={dialogFooter}
       header="Add New Product"
       style={{ width: '30rem' }}
