@@ -1,8 +1,7 @@
+import OrderForm from './OrderForm';
 import ProductDataTable from './ProductDataTable';
 import ProductDialog from './ProductDialog';
 import { useState, useEffect, useRef } from 'react';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
 import { useNavigate } from 'react-router';
 import { Toast } from 'primereact/toast';
 import {
@@ -75,13 +74,17 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent, orderId: number) => {
+  const handleSubmit = async (e: React.FormEvent, orderId?: number) => {
     e.preventDefault();
 
     if (orderProducts.length === 0) return showErrorToast();
 
     try {
-      const serverOrderProducts = await fetchProductsForOrder(orderId);
+      let serverOrderProducts: OrderProduct[] = [];
+      if (orderId) {
+        serverOrderProducts = await fetchProductsForOrder(orderId);
+      }
+
       const onlyNewProducts = orderProducts.filter(
         (p) => !serverOrderProducts.some((sp) => sp.product_id === p.product_id)
       );
@@ -116,41 +119,12 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
   return (
     <main>
       <Toast ref={errorToast} />
-      <form
-        onSubmit={(e) => handleSubmit(e, orderId)}
-        className="p-card p-4 w-min mb-4"
-      >
-        <h2 className="mt-0">Edit Order {orderId}</h2>
-        <div className="field p-mb-4">
-          <label htmlFor="order_number">Order Number</label>
-          <InputText id="order_number" value={order.order_number} disabled />
-        </div>
-        <div className="field p-mb-4">
-          <label htmlFor="date">Date</label>
-          <InputText
-            id="date"
-            value={new Date(order.date).toLocaleDateString()}
-            disabled
-          />
-        </div>
-        <div className="field p-mb-4">
-          <label htmlFor="num_products"># Products</label>
-          <InputText
-            id="num_products"
-            value={order.num_products.toString()}
-            disabled
-          />
-        </div>
-        <div className="field p-mb-4">
-          <label htmlFor="final_price">Final Price</label>
-          <InputText
-            id="final_price"
-            value={order.final_price.toFixed(2)}
-            disabled
-          />
-        </div>
-        <Button label="Save" icon="pi pi-save" type="submit" />
-      </form>
+      <OrderForm
+        header="Edit Order"
+        orderId={orderId}
+        order={order}
+        submitForm={handleSubmit}
+      />
       <ProductDataTable
         onAddProductClick={() => setIsDialogOpen(true)}
         orderProducts={orderProducts}
@@ -160,7 +134,7 @@ const EditOrder = ({ orderId }: { orderId: number }) => {
         visible={isDialogOpen}
         closeDialog={() => setIsDialogOpen(false)}
         addProduct={handleAddProduct}
-      ></ProductDialog>
+      />
     </main>
   );
 };

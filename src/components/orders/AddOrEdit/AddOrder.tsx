@@ -1,9 +1,8 @@
+import OrderForm from './OrderForm';
 import ProductDataTable from './ProductDataTable';
 import ProductDialog from './ProductDialog';
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { addOrder, addProductForOrder } from './api';
 import type { Order, OrderProduct } from '../types';
@@ -88,39 +87,13 @@ const AddOrder = () => {
   return (
     <main>
       <Toast ref={errorToast} />
-      <form onSubmit={handleSubmit} className="p-card p-4 w-min mb-4">
-        <h2 className="mt-0">Add New Order</h2>
-        <div className="field p-mb-4">
-          <label htmlFor="order_number">Order Number</label>
-          <InputText
-            id="order_number"
-            value={order.order_number}
-            onChange={(e) => handleChange('order_number', e.target.value)}
-            required
-          />
-        </div>
-        <div className="field p-mb-4">
-          <label htmlFor="date">Date</label>
-          <InputText id="date" value={order.date} disabled />
-        </div>
-        <div className="field p-mb-4">
-          <label htmlFor="num_products"># Products</label>
-          <InputText
-            id="num_products"
-            value={order.num_products.toString()}
-            disabled
-          />
-        </div>
-        <div className="field p-mb-4">
-          <label htmlFor="final_price">Final Price</label>
-          <InputText
-            id="final_price"
-            value={order.final_price.toFixed(2)}
-            disabled
-          />
-        </div>
-        <Button label="Save" icon="pi pi-save" type="submit" />
-      </form>
+      <OrderForm
+        header="Add New Order"
+        orderId={undefined}
+        order={order}
+        submitForm={handleSubmit}
+        inputChange={handleChange}
+      />
       <ProductDataTable
         onAddProductClick={() => setIsDialogOpen(true)}
         orderProducts={orderProducts}
