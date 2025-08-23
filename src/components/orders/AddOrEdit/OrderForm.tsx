@@ -7,7 +7,7 @@ type OrderFormProps = {
   orderId: number | undefined;
   order: Order;
   submitForm: (e: React.FormEvent, orderId?: number) => void;
-  inputChange?: (field: string, value: string) => void;
+  inputChange: (field: string, value: string) => void;
 };
 
 const OrderForm = ({
@@ -22,16 +22,15 @@ const OrderForm = ({
       onSubmit={(e) => submitForm(e, orderId)}
       className="p-card p-4 w-min mb-4"
     >
-      <h2 className="mt-0">
-        {header} {orderId}
-      </h2>
+      <h2 className="mt-0">{header}</h2>
       <div className="field p-mb-4">
         <label htmlFor="order_number">Order Number</label>
         <InputText
           id="order_number"
           value={order.order_number}
-          onChange={(e) => inputChange?.(`order_number`, e.target.value)}
+          onChange={(e) => inputChange('order_number', e.target.value)}
           disabled={orderId ? true : false}
+          required
         />
       </div>
       <div className="field p-mb-4">

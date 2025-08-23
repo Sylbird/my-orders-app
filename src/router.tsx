@@ -1,7 +1,7 @@
-import { createBrowserRouter } from 'react-router';
 import App from './components/App';
-import AddOrEditOrder from './components/orders/AddOrEdit';
 import Orders from './components/orders';
+import AddOrEditOrder from './components/orders/AddOrEdit';
+import { createBrowserRouter } from 'react-router';
 
 const router = createBrowserRouter([
   {
